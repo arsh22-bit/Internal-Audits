@@ -1,26 +1,66 @@
-'use client'
+"use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
-    ChevronDown,
-    ChevronRight,
-    Filter,
-    Calendar,
-    User,
-    AlertCircle,
-    CheckCircle,
-    Clock,
-    FileText,
-    Users,
-    Layers,
-    Target,
-    BookOpen,
-    Shield,
-    Info,
-    X,
-} from "lucide-react";
+  PlusCircle,
+  Search,
+  Filter,
+  FileText,
+  Calendar,
+  User,
+  Badge,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  Settings,
+  LogOut,
+  BarChart3,
+  Users,
+  Target,
+  Layers,
+  BookOpen,
+  Shield,
+  Info,
+  X
+} from 'lucide-react';
+import apiClient from '@/lib/api-client';
 
-// Type definitions
+// Types
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: 'admin' | 'auditor' | 'manager';
+  department: string;
+}
+
+interface Audit {
+  id: string;
+  title: string;
+  description: string;
+  auditType: 'internal' | 'external' | 'compliance' | 'quality' | 'safety';
+  department: string;
+  status: 'draft' | 'active' | 'completed' | 'archived';
+  riskLevel: 'low' | 'medium' | 'high' | 'critical';
+  startDate: string;
+  endDate?: string;
+  completedDate?: string;
+  overallScore?: number;
+  auditor: {
+    name: string;
+    email: string;
+  };
+  manager?: {
+    name: string;
+    email: string;
+  };
+  items: any[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Type definitions for the existing audit form
 interface AuditCategory {
     id: string;
     title: string;
@@ -928,16 +968,27 @@ Mention TBD or some reason, if the resources are required after some event has h
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl px-4 py-3 shadow-md border border-gray-200/50">
-                            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-                                <User className="w-4 h-4 text-white" />
-                            </div>
-                            <div>
-                                <span className="text-sm font-semibold text-gray-800">
-                                    Admin User
-                                </span>
-                                <div className="text-xs text-gray-500">
-                                    System Administrator
+                        <div className="flex items-center gap-4">
+                            {/* Admin Panel Link - Only show for admins */}
+                            <a
+                                href="/admin"
+                                className="flex items-center gap-2 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                            >
+                                <Settings className="w-4 h-4" />
+                                Admin Panel
+                            </a>
+                            
+                            <div className="flex items-center gap-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl px-4 py-3 shadow-md border border-gray-200/50">
+                                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+                                    <User className="w-4 h-4 text-white" />
+                                </div>
+                                <div>
+                                    <span className="text-sm font-semibold text-gray-800">
+                                        Admin User
+                                    </span>
+                                    <div className="text-xs text-gray-500">
+                                        System Administrator
+                                    </div>
                                 </div>
                             </div>
                         </div>

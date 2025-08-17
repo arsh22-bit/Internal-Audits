@@ -14,6 +14,7 @@ import {
     Building,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import apiClient from "@/lib/api-client";
 
 // Types
 interface User {
@@ -22,6 +23,8 @@ interface User {
     name: string;
     role: "admin" | "auditor" | "manager";
     department: string;
+    createdAt?: Date;
+    updatedAt?: Date;
 }
 
 interface AuthContextType {
@@ -40,34 +43,6 @@ interface AuthContextType {
 // Auth Context
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Mock user database
-const mockUsers = [
-    {
-        id: "1",
-        email: "admin@tata.com",
-        password: "admin123",
-        name: "Admin User",
-        role: "admin",
-        department: "IT Administration",
-    },
-    {
-        id: "2",
-        email: "auditor@tata.com",
-        password: "audit123",
-        name: "Quality Auditor",
-        role: "auditor",
-        department: "Quality Assurance",
-    },
-    {
-        id: "3",
-        email: "manager@tata.com",
-        password: "manager123",
-        name: "Project Manager",
-        role: "manager",
-        department: "Project Management",
-    },
-];
-
 // Auth Provider Component
 const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     children,
@@ -77,41 +52,56 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const router = useRouter();
 
     useEffect(() => {
-        const storedUser = localStorage.getItem("tata_auth_user");
-        if (storedUser) {
-            setUser(JSON.parse(storedUser));
-            router.push("/audit"); // Redirect to audit page if already logged in
-        }
-        setIsLoading(false);
+        // Check for stored token and validate it
+        const checkAuthStatus = async () => {
+            try {
+                const token = localStorage.getItem('auth_token');
+                if (token) {
+                    apiClient.setToken(token);
+                    const response = await apiClient.getCurrentUser();
+                    if (response.success && response.data?.user) {
+                        setUser(response.data.user);
+                        router.push("/audit"); // Redirect to audit page if already logged in
+                    } else {
+                        // Token is invalid, clear it
+                        localStorage.removeItem('auth_token');
+                        apiClient.setToken(null);
+                    }
+                }
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                // Clear invalid token
+                localStorage.removeItem('auth_token');
+                apiClient.setToken(null);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        checkAuthStatus();
     }, [router]);
 
     const login = async (email: string, password: string): Promise<boolean> => {
         setIsLoading(true);
 
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        try {
+            const response = await apiClient.login(email, password);
+            
+            if (response.success && response.data?.user) {
+                setUser(response.data.user);
+                localStorage.setItem("tata_auth_user", JSON.stringify(response.data.user));
+                setIsLoading(false);
+                router.push("/audit"); // Redirect to audit page after successful login
+                return true;
+            }
 
-        const foundUser = mockUsers.find(
-            (u) => u.email === email && u.password === password
-        );
-
-        if (foundUser) {
-            const userData: User = {
-                id: foundUser.id,
-                email: foundUser.email,
-                name: foundUser.name,
-                role: foundUser.role as "admin" | "auditor" | "manager",
-                department: foundUser.department,
-            };
-
-            setUser(userData);
-            localStorage.setItem("tata_auth_user", JSON.stringify(userData));
             setIsLoading(false);
-            router.push("/audit"); // Redirect to audit page after successful login
-            return true;
+            return false;
+        } catch (error) {
+            console.error('Login failed:', error);
+            setIsLoading(false);
+            return false;
         }
-
-        setIsLoading(false);
-        return false;
     };
 
     const register = async (
@@ -122,43 +112,31 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     ): Promise<boolean> => {
         setIsLoading(true);
 
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        try {
+            const response = await apiClient.register(email, password, name, department);
+            
+            if (response.success && response.data?.user) {
+                setUser(response.data.user);
+                localStorage.setItem("tata_auth_user", JSON.stringify(response.data.user));
+                setIsLoading(false);
+                router.push("/audit"); // Redirect to audit page after successful registration
+                return true;
+            }
 
-        const existingUser = mockUsers.find((u) => u.email === email);
-        if (existingUser) {
+            setIsLoading(false);
+            return false;
+        } catch (error) {
+            console.error('Registration failed:', error);
             setIsLoading(false);
             return false;
         }
-
-        const newUser: User = {
-            id: Date.now().toString(),
-            email,
-            name,
-            role: "auditor",
-            department,
-        };
-
-        const newUserEntry = {
-            id: newUser.id,
-            email: newUser.email,
-            password: password,
-            name: newUser.name,
-            role: "auditor",
-            department: newUser.department,
-        };
-
-        mockUsers.push(newUserEntry);
-
-        setUser(newUser);
-        localStorage.setItem("tata_auth_user", JSON.stringify(newUser));
-        setIsLoading(false);
-        router.push("/audit"); // Redirect to audit page after successful registration
-        return true;
     };
 
     const logout = () => {
         setUser(null);
         localStorage.removeItem("tata_auth_user");
+        localStorage.removeItem('auth_token');
+        apiClient.logout();
         router.push("/"); // Redirect to login page
     };
 
@@ -354,7 +332,7 @@ const LoginForm: React.FC<{ onToggleMode: () => void }> = ({
                         color: "color-mix(in srgb, var(--foreground) 80%, blue)",
                     }}
                 >
-                    Demo Credentials:
+                    Getting Started:
                 </h4>
                 <div
                     className="text-sm text-blue-700 dark:text-blue-300 space-y-1"
@@ -363,13 +341,13 @@ const LoginForm: React.FC<{ onToggleMode: () => void }> = ({
                     }}
                 >
                     <div>
-                        <strong>Admin:</strong> admin@tata.com / admin123
+                        Create an account by clicking "Create Account" above.
                     </div>
                     <div>
-                        <strong>Auditor:</strong> auditor@tata.com / audit123
+                        Your first user will be assigned the "auditor" role by default.
                     </div>
                     <div>
-                        <strong>Manager:</strong> manager@tata.com / manager123
+                        Make sure MongoDB is running and configured in .env.local
                     </div>
                 </div>
             </div>
