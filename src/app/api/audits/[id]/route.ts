@@ -7,7 +7,7 @@ import mongoose from 'mongoose';
 // GET /api/audits/[id] - Get single audit
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
@@ -21,7 +21,7 @@ export async function GET(
     }
 
     const { user } = authResult;
-    const { id } = params;
+    const { id } = await params;
 
     // Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -49,8 +49,8 @@ export async function GET(
     const hasAccess = canAccessAudit(
       user.role,
       user.department,
-      audit.department,
-      audit.auditor._id.toString(),
+      (audit as any).department,
+      (audit as any).auditor._id.toString(),
       user.id
     );
 
@@ -78,7 +78,7 @@ export async function GET(
 // PUT /api/audits/[id] - Update audit
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
@@ -92,7 +92,7 @@ export async function PUT(
     }
 
     const { user } = authResult;
-    const { id } = params;
+    const { id } = await params;
 
     // Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -192,7 +192,7 @@ export async function PUT(
 // DELETE /api/audits/[id] - Delete audit (soft delete)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
@@ -206,7 +206,7 @@ export async function DELETE(
     }
 
     const { user } = authResult;
-    const { id } = params;
+    const { id } = await params;
 
     // Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {

@@ -105,12 +105,12 @@ export default function AdminPanel() {
         apiClient.setToken(token);
         const userResponse = await apiClient.getCurrentUser();
         
-        if (!userResponse.success || userResponse.data.user.role !== 'admin') {
+        if (!userResponse.success || (userResponse.data as any)?.user?.role !== 'admin') {
           router.push('/audit');
           return;
         }
 
-        setCurrentUser(userResponse.data.user);
+        setCurrentUser((userResponse.data as any).user);
         
         // Fetch audits and users data
         await Promise.all([
@@ -134,7 +134,7 @@ export default function AdminPanel() {
     try {
       const response = await apiClient.getAudits({ limit: 100 });
       if (response.success) {
-        setAudits(response.data.audits || []);
+        setAudits((response.data as any)?.audits || []);
       }
     } catch (error) {
       console.error('Failed to fetch audits:', error);

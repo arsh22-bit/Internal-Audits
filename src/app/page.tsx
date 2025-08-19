@@ -59,8 +59,8 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                 if (token) {
                     apiClient.setToken(token);
                     const response = await apiClient.getCurrentUser();
-                    if (response.success && response.data?.user) {
-                        setUser(response.data.user);
+                    if (response.success && (response.data as any)?.user) {
+                        setUser((response.data as any).user);
                         router.push("/audit"); // Redirect to audit page if already logged in
                     } else {
                         // Token is invalid, clear it
@@ -87,9 +87,9 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         try {
             const response = await apiClient.login(email, password);
             
-            if (response.success && response.data?.user) {
-                setUser(response.data.user);
-                localStorage.setItem("tata_auth_user", JSON.stringify(response.data.user));
+            if (response.success && (response.data as any)?.user) {
+                setUser((response.data as any).user);
+                localStorage.setItem("tata_auth_user", JSON.stringify((response.data as any).user));
                 setIsLoading(false);
                 router.push("/audit"); // Redirect to audit page after successful login
                 return true;
@@ -115,9 +115,9 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         try {
             const response = await apiClient.register(email, password, name, department);
             
-            if (response.success && response.data?.user) {
-                setUser(response.data.user);
-                localStorage.setItem("tata_auth_user", JSON.stringify(response.data.user));
+            if (response.success && (response.data as any)?.user) {
+                setUser((response.data as any).user);
+                localStorage.setItem("tata_auth_user", JSON.stringify((response.data as any).user));
                 setIsLoading(false);
                 router.push("/audit"); // Redirect to audit page after successful registration
                 return true;
